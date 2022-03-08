@@ -44,3 +44,30 @@ function get_secp256k1_order(n, k) {
     }
     return ret;
 }
+
+// (p+1)/4= 28948022309329048855892746252171976963317496166410141009864396001977208667916
+// or 3FFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF BFFFFF0C
+// ret[0]=                                           3FFFFF FFFFFFFF BFFFFF0C (77371252455336266107453196)
+// ret[1]=                   3FF FFFFFFFF FFFFFFFF FFF                             
+// ret[2]=3FFFFFFF FFFFFFFF FFFFF
+function get_secp256k1_primePlus1Devide4(n,k) {
+    assert(n == 86 && k == 3);
+    var ret[100];
+    if (n == 86 && k == 3) {
+        ret[0] = 77371252455336266107453196;
+        ret[1] = 77371252455336267181195263;
+        ret[2] = 4835703278458516698824703;
+    }
+    return ret;
+}
+
+function get_secp256k1_PrimeMinus7(n,k) {
+    assert(n == 86 && k == 3);
+    var ret[100];
+    if (n == 86 && k == 3) {
+        ret[0] = 77371252455336266107453189;
+        ret[1] = 77371252455336267181195263;
+        ret[2] = 4835703278458516698824703;
+    }
+    return ret;
+}
