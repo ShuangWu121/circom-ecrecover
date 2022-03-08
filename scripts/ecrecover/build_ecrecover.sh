@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PHASE1=../../circuits/pot22_final.ptau
+PHASE1=../../circuits/pot25_final.ptau
 BUILD_DIR=../../build/ecrecover
 CIRCUIT_NAME=ecrecover
 
@@ -24,7 +24,7 @@ echo "DONE ($((end-start))s)"
 
 echo "****GENERATING WITNESS FOR SAMPLE INPUT****"
 start=`date +%s`
-node "$BUILD_DIR"/"$CIRCUIT_NAME"_js/generate_witness.js "$BUILD_DIR"/"$CIRCUIT_NAME"_js/"$CIRCUIT_NAME".wasm input_pubkeygen.json "$BUILD_DIR"/witness.wtns
+node "$BUILD_DIR"/"$CIRCUIT_NAME"_js/generate_witness.js "$BUILD_DIR"/"$CIRCUIT_NAME"_js/"$CIRCUIT_NAME".wasm input_ecrecover.json "$BUILD_DIR"/witness.wtns
 end=`date +%s`
 echo "DONE ($((end-start))s)"
 
