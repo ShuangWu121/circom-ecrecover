@@ -14,45 +14,51 @@ include "ecdsa.circom";
 
 /*
 
-There should be a check for the validation of x, i.e. r, that is,
+-Check the validation of x, i.e. r, that is,
+    
+    1. x is in the correct range
+    1. Derive y from x, using the equation of the curve
+    2. test if (x,y) is on the curve
 
-1. Derive y from x, using the equation of the curve
-2. test if (x,y) is on the curve
+-Check s is valid (s is not zero or 1)
 
-
+-Compute the public key, set the point (r,y) as X, then the public key is: pubkey=s*r^{-1}*X-e*r^{-1}*G
 
 */
 
-// keys are encoded as (x, y) pairs with each coordinate being
-// encoded with k registers of n bits each
 
-// r, s, msghash, and pubkey have coordinates
+
+// r, s, msghash, have coordinates
 // encoded with k registers of n bits each
 // signature is (r, s)
 
 
 template Ecrecover(n,k){
-	assert(k >= 2);
+    assert(k >= 2);
     assert(k <= 100);
 
     signal input r[k];
     signal input s[k];
     signal input v;
     signal input msghash[k];
+
+    // signal validation shows if x is valid
     signal output validation;
     signal output pubkey[2][k];
-    
-    signal output result;
 
     var p[100] = get_secp256k1_prime(n, k);
     var order[100] = get_secp256k1_order(n, k);
+
+    // to compute the square root of y, I compute y^{(p+1)/4}, pDiv4=(p+1)/4
     var pDiv4[100] =get_secp256k1_primePlus1Devide4(n,k);
+
+    // Compute x^3+7
+    //somehow the modular addition for big number always has bugs, 
+    //so I compute x^3-(p-7) mod p instead, so I use BigSubMod function, b=p-7
+    
     var b[100]=get_secp256k1_PrimeMinus7(n,k);
 
-    /* derive y from r
-    1.compute x^3+7
-    2.compute y
-    */
+    // derive y from r
     // compute x^3+7
     component r_double=BigMultModP(n, k);
     for (var idx = 0; idx < k; idx++) {
@@ -76,17 +82,39 @@ template Ecrecover(n,k){
     }
     
 
-    //compute y=squrt(x^3+7)
+    //compute y=squre roof of (x^3+7), that is SqureRoot(y)=y^{(p+1)/4} mod p
     signal computeY[k];
     for (var idx = 0; idx < k; idx++) {
         computeY[idx] <== r_triple_plus7.out[idx];
     }
 
     var yLong[100]=mod_exp(n,k,computeY,p,pDiv4);
-    
+
+    component PSubylong=BigSubModP(n,k);
+    for (var idx = 0; idx < k; idx++) {
+        PSubylong.a[idx] <== p[idx];
+        PSubylong.b[idx] <-- yLong[idx];
+        PSubylong.p[idx] <== p[idx];
+
+    }
+
+    //choose the correct y based on v
+
+    signal yflag;
+    yflag<==yLong[k]<<(n-1);
+
+    signal vflag;
+    vflag<--v<<(n-1);
+
+
+
+    //flag=ylong % 2
+    //y=ylong (flag* (v%2))+y() 
+
+
     signal y[k];
     for (var idx = 0; idx < k; idx++) {
-        y[idx] <-- yLong[k];
+        y[idx] <-- yLong[idx]*!(yflag^vflag)+PSubylong.out[idx]*(yflag^vflag);
     }
 
     component OnCurve=Secp256k1PointOnCurve(n,k);
@@ -98,7 +126,7 @@ template Ecrecover(n,k){
     validation<==OnCurve.out;
 
 
-    //check s
+    //check s range,this range check is from https://github.com/0xPARC/circom-ecdsa
 
     // compute multiplicative inverse of s mod n
     var sinv_comp[100] = mod_inv(n, k, s, order);
